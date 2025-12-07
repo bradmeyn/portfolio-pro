@@ -1,0 +1,154 @@
+import { command, form, query } from '$app/server';
+import { z } from 'zod';
+import { getCurrentUser } from '$lib/remotes/auth.remote';
+import { db } from '$db';
+import { transactionTable, holdingTable } from '$db/schemas/portfolio';
+import { eq } from 'drizzle-orm';
+import { error } from '@sveltejs/kit';
+
+export const getTransactions = query(z.string(), async (holdingId: string) => {
+	const user = await getCurrentUser();
+	if (!user) error(401, 'Unauthorized');
+
+	// Verify user owns the holding
+	const holding = await db.query.holdingTable.findFirst({
+		where: eq(holdingTable.id, holdingId),
+		with: {
+			portfolio: true
+		}
+	});
+
+	if (!holding) error(404, 'Holding not found');
+	if (holding.portfolio.userId !== user.id) error(403, 'Forbidden');
+
+	const transactions = await db.query.transactionTable.findMany({
+		where: eq(transactionTable.holdingId, holdingId)
+	});
+
+	return transactions;
+});
+
+export const getTransaction = query(z.string(), async (id: string) => {
+	const user = await getCurrentUser();
+	if (!user) error(401, 'Unauthorized');
+
+	const transaction = await db.query.transactionTable.findFirst({
+		where: eq(transactionTable.id, id),
+		with: {
+			holding: {
+				with: {
+					portfolio: true
+				}
+			}
+		}
+	});
+
+	if (!transaction) error(404, 'Transaction not found');
+	if (transaction.holding.portfolio.userId !== user.id) error(403, 'Forbidden');
+
+	return transaction;
+});
+
+export const addTransaction = form(
+	z.object({
+		holdingId: z.string(),
+		quantity: z.number().min(1, 'Quantity must be at least 1'),
+		pricePerUnit: z.number().min(0, 'Price per unit must be positive'),
+		transactionDate: z.string(),
+		type: z.enum(['buy', 'sell'], { message: 'Type must be buy or sell' })
+	}),
+	async ({ holdingId, quantity, pricePerUnit, transactionDate, type }) => {
+		const user = await getCurrentUser();
+		if (!user) error(401, 'Unauthorized');
+
+		// Verify user owns the holding
+		const holding = await db.query.holdingTable.findFirst({
+			where: eq(holdingTable.id, holdingId),
+			with: {
+				portfolio: true
+			}
+		});
+
+		if (!holding) error(404, 'Holding not found');
+		if (holding.portfolio.userId !== user.id) error(403, 'Forbidden');
+
+		const [newTransaction] = await db
+			.insert(transactionTable)
+			.values({
+				holdingId,
+				quantity,
+				pricePerUnit,
+				transactionDate: new Date(transactionDate),
+				type
+			})
+			.returning();
+
+		return { success: true, transaction: newTransaction };
+	}
+);
+
+export const editTransaction = form(
+	z.object({
+		id: z.string(),
+		quantity: z.number().min(1, 'Quantity must be at least 1'),
+		pricePerUnit: z.number().min(0, 'Price per unit must be positive'),
+		transactionDate: z.string(),
+		type: z.enum(['buy', 'sell'], { message: 'Type must be buy or sell' })
+	}),
+	async ({ id, quantity, pricePerUnit, transactionDate, type }) => {
+		const user = await getCurrentUser();
+		if (!user) error(401, 'Unauthorized');
+
+		const transaction = await db.query.transactionTable.findFirst({
+			where: eq(transactionTable.id, id),
+			with: {
+				holding: {
+					with: {
+						portfolio: true
+					}
+				}
+			}
+		});
+
+		if (!transaction) error(404, 'Transaction not found');
+		if (transaction.holding.portfolio.userId !== user.id) error(403, 'Forbidden');
+
+		const [updatedTransaction] = await db
+			.update(transactionTable)
+			.set({ quantity, pricePerUnit, transactionDate: new Date(transactionDate), type })
+			.where(eq(transactionTable.id, id))
+			.returning();
+
+		return { success: true, transaction: updatedTransaction };
+	}
+);
+
+export const deleteTransaction = command(
+	z.object({
+		id: z.string()
+	}),
+	async ({ id }) => {
+		const user = await getCurrentUser();
+		if (!user) error(401, 'Unauthorized');
+
+		const transaction = await db.query.transactionTable.findFirst({
+			where: eq(transactionTable.id, id),
+			with: {
+				holding: {
+					with: {
+						portfolio: true
+					}
+				}
+			}
+		});
+
+		if (!transaction) error(404, 'Transaction not found');
+		if (transaction.holding.portfolio.userId !== user.id) error(403, 'Forbidden');
+
+		await db.delete(transactionTable).where(eq(transactionTable.id, id));
+
+		await getTransactions(transaction.holdingId).refresh();
+
+		return { success: true };
+	}
+);
