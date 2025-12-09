@@ -78,6 +78,7 @@
 <DeleteDialog
 	bind:open={deleteOpen}
 	label="transaction"
+	showTrigger={false}
 	onDelete={async () => {
 		await deleteTransaction(transaction.id);
 		deleteOpen = false;

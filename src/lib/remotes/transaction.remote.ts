@@ -72,16 +72,22 @@ export const addTransaction = form(
 		if (!holding) error(404, 'Holding not found');
 		if (holding.portfolio.userId !== user.id) error(403, 'Forbidden');
 
+		// Convert price to cents (integer)
+		const priceInCents = Math.round(pricePerUnit * 100);
+
 		const [newTransaction] = await db
 			.insert(transactionTable)
 			.values({
 				holdingId,
 				quantity,
-				pricePerUnit,
+				pricePerUnit: priceInCents,
 				transactionDate: new Date(transactionDate),
 				type
 			})
 			.returning();
+
+		// Refresh transactions for the holding
+		await getTransactions(holdingId).refresh();
 
 		return { success: true, transaction: newTransaction };
 	}
@@ -113,9 +119,17 @@ export const editTransaction = form(
 		if (!transaction) error(404, 'Transaction not found');
 		if (transaction.holding.portfolio.userId !== user.id) error(403, 'Forbidden');
 
+		// Convert price to cents (integer)
+		const priceInCents = Math.round(pricePerUnit * 100);
+
 		const [updatedTransaction] = await db
 			.update(transactionTable)
-			.set({ quantity, pricePerUnit, transactionDate: new Date(transactionDate), type })
+			.set({
+				quantity,
+				pricePerUnit: priceInCents,
+				transactionDate: new Date(transactionDate),
+				type
+			})
 			.where(eq(transactionTable.id, id))
 			.returning();
 

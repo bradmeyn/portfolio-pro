@@ -43,9 +43,9 @@
 								${((holding.units * holding.averagePrice) / 100).toFixed(2)}
 							</Table.Cell>
 							<Table.Cell class="text-right">
-								<a href="/portfolios/{portfolioId}/{holding.id}">
-									<Button variant="outline" size="sm">View Details</Button>
-								</a>
+								<Button href="/portfolios/{portfolioId}/{holding.id}" variant="outline" size="sm"
+									>View</Button
+								>
 							</Table.Cell>
 						</Table.Row>
 					{/each}

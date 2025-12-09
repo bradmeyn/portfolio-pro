@@ -4,10 +4,10 @@
 	import Input from '$ui/input/input.svelte';
 	import * as Field from '$ui/field';
 	import { addTransaction } from '$lib/remotes/transaction.remote';
-	import { getTransactions } from '$lib/remotes/transaction.remote';
-	import { getHolding } from '$lib/remotes/holding.remote';
 	import Spinner from '$ui/spinner/spinner.svelte';
 	import { Plus } from '@lucide/svelte';
+	import DatePicker from '$ui/date-picker.svelte';
+	import type { DateValue } from '@internationalized/date';
 
 	let {
 		holdingId,
@@ -18,6 +18,14 @@
 		open?: boolean;
 		showTrigger?: boolean;
 	} = $props();
+
+	let selectedDate = $state<DateValue | undefined>(undefined);
+
+	function handleDateChange(date: DateValue | undefined) {
+		if (date) {
+			addTransaction.fields.transactionDate.set(date.toString());
+		}
+	}
 </script>
 
 <Dialog.Root bind:open>
@@ -43,9 +51,10 @@
 		<form
 			{...addTransaction.for(holdingId).enhance(async ({ form, submit }) => {
 				try {
-					await submit().updates(getTransactions(holdingId), getHolding(holdingId));
-					form.reset();
-					if (addTransaction.result?.success) {
+					await submit();
+
+					if (addTransaction.for(holdingId).result?.success) {
+						form.reset();
 						open = false;
 					}
 				} catch (e) {
@@ -64,6 +73,7 @@
 					<option value="">Select type</option>
 					<option value="buy">Buy</option>
 					<option value="sell">Sell</option>
+					<option value="reinvestment">Reinvestment</option>
 				</select>
 				<Field.Error />
 			</Field.Field>
@@ -89,11 +99,8 @@
 
 			<Field.Field>
 				<Field.Label for="transactionDate">Transaction Date</Field.Label>
-				<Input
-					id="transactionDate"
-					{...addTransaction.fields.transactionDate.as('text')}
-					type="date"
-				/>
+				<DatePicker bind:value={selectedDate} onValueChange={handleDateChange} />
+				<input type="hidden" {...addTransaction.fields.transactionDate.as('text')} />
 				<Field.Error />
 			</Field.Field>
 

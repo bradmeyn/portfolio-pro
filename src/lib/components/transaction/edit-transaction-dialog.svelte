@@ -70,6 +70,7 @@
 					<option value="">Select type</option>
 					<option value="buy">Buy</option>
 					<option value="sell">Sell</option>
+					<option value="reinvestment">Reinvestment</option>
 				</select>
 				<Field.Error />
 			</Field.Field>
