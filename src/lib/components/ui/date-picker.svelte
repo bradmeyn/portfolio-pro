@@ -14,8 +14,8 @@
 		onValueChange?: (date: DateValue | undefined) => void;
 	} = $props();
 
-	const df = new DateFormatter('en-US', {
-		dateStyle: 'long'
+	const df = new DateFormatter('en-AU', {
+		dateStyle: 'medium'
 	});
 
 	let contentRef = $state<HTMLElement | null>(null);

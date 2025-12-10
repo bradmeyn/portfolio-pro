@@ -7,6 +7,8 @@
 	import { getTransaction, getTransactions } from '$lib/remotes/transaction.remote';
 	import { getHolding } from '$lib/remotes/holding.remote';
 	import Spinner from '$ui/spinner/spinner.svelte';
+	import DatePicker from '$ui/date-picker.svelte';
+	import { parseDate, type DateValue } from '@internationalized/date';
 
 	let {
 		transactionId,
@@ -31,14 +33,24 @@
 		return d.toISOString().split('T')[0];
 	};
 
+	let selectedDate = $state<DateValue | undefined>(
+		parseDate(formatDate(transaction.transactionDate))
+	);
+
+	function handleDateChange(date: DateValue | undefined) {
+		if (date) {
+			selectedDate = date;
+			editTransaction.fields.transactionDate.set(date.toString());
+		}
+	}
+
+	// Ensure field has initial ISO value for submission
+	editTransaction.fields.transactionDate.set(formatDate(transaction.transactionDate));
+
 	async function onSubmitEnhance({ form, submit }: any) {
 		try {
-			await submit().updates(
-				getTransaction(transactionId),
-				getTransactions(holdingId),
-				getHolding(holdingId)
-			);
-			if (editTransaction.result?.success) {
+			await submit();
+			if (editTransaction.for(transactionId).result?.success) {
 				open = false;
 			}
 		} catch (e) {
@@ -103,12 +115,8 @@
 
 			<Field.Field>
 				<Field.Label for="transactionDate">Transaction Date</Field.Label>
-				<Input
-					id="transactionDate"
-					{...editTransaction.fields.transactionDate.as('text')}
-					value={formatDate(transaction.transactionDate)}
-					type="date"
-				/>
+				<DatePicker bind:value={selectedDate} onValueChange={handleDateChange} />
+				<input type="hidden" {...editTransaction.fields.transactionDate.as('text')} />
 				<Field.Error />
 			</Field.Field>
 

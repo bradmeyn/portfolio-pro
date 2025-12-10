@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { getHolding } from '$lib/remotes/holding.remote';
-	import { getTransactions } from '$lib/remotes/transaction.remote';
 	import { page } from '$app/state';
 	import * as Table from '$ui/table';
 	import Button from '$ui/button/button.svelte';
-	import AddTransactionDialog from '$lib/components/transaction/add-transaction-dialog.svelte';
+	import AddTransactionsDialog from '$lib/components/transaction/add-transactions-dialog.svelte';
 	import TransactionRow from '$lib/components/transaction/transaction-row.svelte';
 	import { ArrowLeft } from '@lucide/svelte';
 	import { formatCurrency } from '$lib/utils';
@@ -13,9 +12,8 @@
 	const portfolioId = page.params.portfolioId!;
 
 	const holding = $derived(await getHolding(holdingId));
-	const transactions = $derived(await getTransactions(holdingId));
 
-	let addTransactionOpen = $state(false);
+	let addTransactionsOpen = $state(false);
 </script>
 
 <div class="container mx-auto py-6">
@@ -32,7 +30,7 @@
 				<h1 class="text-3xl font-bold">{holding.investment.name}</h1>
 				<p class="text-lg text-muted-foreground">{holding.investment.code}</p>
 			</div>
-			<AddTransactionDialog {holdingId} bind:open={addTransactionOpen} />
+			<AddTransactionsDialog {holdingId} bind:open={addTransactionsOpen} showTrigger={false} />
 		</div>
 	</div>
 
@@ -62,10 +60,10 @@
 	<div>
 		<div class="mb-4 flex items-center justify-between">
 			<h2 class="text-2xl font-bold">Transactions</h2>
-			<Button onclick={() => (addTransactionOpen = true)}>Add Transaction</Button>
+			<Button onclick={() => (addTransactionsOpen = true)}>Add Transactions</Button>
 		</div>
 
-		{#if transactions && transactions.length > 0}
+		{#if holding.transactions.length > 0}
 			<div class="card">
 				<Table.Root>
 					<Table.Header>
@@ -79,7 +77,7 @@
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
-						{#each transactions as transaction}
+						{#each holding.transactions as transaction}
 							<TransactionRow {transaction} {holdingId} />
 						{/each}
 					</Table.Body>
@@ -90,7 +88,7 @@
 				<p class="mb-4 text-muted-foreground">
 					No transactions yet. Add your first transaction to get started.
 				</p>
-				<Button onclick={() => (addTransactionOpen = true)}>Add Transaction</Button>
+				<Button onclick={() => (addTransactionsOpen = true)}>Add Transactions</Button>
 			</div>
 		{/if}
 	</div>

@@ -5,6 +5,7 @@ import { db } from '$db';
 import { transactionTable, holdingTable } from '$db/schemas/portfolio';
 import { eq } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
+import { getHolding } from './holding.remote';
 
 export const getTransactions = query(z.string(), async (holdingId: string) => {
 	const user = await getCurrentUser();
@@ -49,6 +50,54 @@ export const getTransaction = query(z.string(), async (id: string) => {
 	return transaction;
 });
 
+export const addTransactions = form(
+	z.object({
+		holdingId: z.string(),
+		transactions: z.array(
+			z.object({
+				quantity: z.number().min(1, 'Quantity must be at least 1'),
+				pricePerUnit: z.number().min(0, 'Price per unit must be positive'),
+				transactionDate: z.string(),
+				type: z.enum(['buy', 'sell'], { message: 'Type must be buy or sell' })
+			})
+		)
+	}),
+	async ({ holdingId, transactions }) => {
+		const user = await getCurrentUser();
+		if (!user) error(401, 'Unauthorized');
+
+		// Verify user owns the holding
+		const holding = await db.query.holdingTable.findFirst({
+			where: eq(holdingTable.id, holdingId),
+			with: {
+				portfolio: true
+			}
+		});
+
+		if (!holding) error(404, 'Holding not found');
+		if (holding.portfolio.userId !== user.id) error(403, 'Forbidden');
+
+		// Convert prices to cents and prepare batch insert
+		const transactionsToInsert = transactions.map((t) => ({
+			holdingId,
+			quantity: t.quantity,
+			pricePerUnit: Math.round(t.pricePerUnit * 100),
+			transactionDate: new Date(t.transactionDate),
+			type: t.type
+		}));
+
+		const newTransactions = await db
+			.insert(transactionTable)
+			.values(transactionsToInsert)
+			.returning();
+
+		// Refresh holding (includes transactions) and transactions list
+		await Promise.all([getTransactions(holdingId).refresh(), getHolding(holdingId).refresh()]);
+
+		return { success: true, transactions: newTransactions };
+	}
+);
+
 export const addTransaction = form(
 	z.object({
 		holdingId: z.string(),
@@ -86,8 +135,8 @@ export const addTransaction = form(
 			})
 			.returning();
 
-		// Refresh transactions for the holding
-		await getTransactions(holdingId).refresh();
+		// Refresh holding (includes transactions) and transactions list
+		await Promise.all([getTransactions(holdingId).refresh(), getHolding(holdingId).refresh()]);
 
 		return { success: true, transaction: newTransaction };
 	}
@@ -132,6 +181,7 @@ export const editTransaction = form(
 			})
 			.where(eq(transactionTable.id, id))
 			.returning();
+		await getHolding(transaction.holdingId).refresh();
 
 		return { success: true, transaction: updatedTransaction };
 	}
@@ -161,7 +211,10 @@ export const deleteTransaction = command(
 
 		await db.delete(transactionTable).where(eq(transactionTable.id, id));
 
-		await getTransactions(transaction.holdingId).refresh();
+		await Promise.all([
+			getTransactions(transaction.holdingId).refresh(),
+			getHolding(transaction.holdingId).refresh()
+		]);
 
 		return { success: true };
 	}

@@ -80,7 +80,7 @@
 	label="transaction"
 	showTrigger={false}
 	onDelete={async () => {
-		await deleteTransaction(transaction.id);
+		await deleteTransaction({ id: transaction.id });
 		deleteOpen = false;
 	}}
 />
