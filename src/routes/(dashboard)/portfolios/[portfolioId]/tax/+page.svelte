@@ -23,11 +23,10 @@
 
 	// Filter realised gains/losses for current FY
 	const allFYGains = $derived(
-		[...taxSummary.realisedGains.longTerm, ...taxSummary.realisedGains.shortTerm]
-			.filter((g) => {
-				const saleDate = new Date(g.saleDate);
-				return saleDate >= currentFY.start && saleDate <= currentFY.end;
-			})
+		[...taxSummary.realisedGains.longTerm, ...taxSummary.realisedGains.shortTerm].filter((g) => {
+			const saleDate = new Date(g.saleDate);
+			return saleDate >= currentFY.start && saleDate <= currentFY.end;
+		})
 	);
 
 	// Separate into gains and losses, then by term
@@ -387,13 +386,16 @@
 <div class="mb-8">
 	<h2 class="mb-4 text-2xl font-bold">Summary</h2>
 	<p class="mb-4 text-sm text-muted-foreground">
-		Capital losses are first offset against short-term gains, then long-term gains. Long-term gains receive a 50% CGT discount.
+		Capital losses are first offset against short-term gains, then long-term gains. Long-term gains
+		receive a 50% CGT discount.
 	</p>
 
 	<div class="card">
 		<!-- Short-Term Section -->
 		<div class="mb-6">
-			<h3 class="mb-3 font-semibold">Capital Gains on shares applicable for 'Other' method (short-term gains)</h3>
+			<h3 class="mb-3 font-semibold">
+				Capital Gains on shares applicable for 'Other' method (short-term gains)
+			</h3>
 			<div class="space-y-2 text-sm">
 				<div class="flex justify-between">
 					<span>Short Term Gains</span>
@@ -412,7 +414,9 @@
 
 		<!-- Long-Term Section -->
 		<div class="mb-6">
-			<h3 class="mb-3 font-semibold">Capital Gains on shares applicable for 'Discount' method (long-term gains)</h3>
+			<h3 class="mb-3 font-semibold">
+				Capital Gains on shares applicable for 'Discount' method (long-term gains)
+			</h3>
 			<div class="space-y-2 text-sm">
 				<div class="flex justify-between">
 					<span>Long Term Gains</span>
@@ -493,7 +497,10 @@
 									value={unitsToSell}
 									oninput={(e) => {
 										const value = parseInt(e.currentTarget.value) || 0;
-										unitsToSellByHolding = { ...unitsToSellByHolding, [holding.id]: Math.min(value, holding.units) };
+										unitsToSellByHolding = {
+											...unitsToSellByHolding,
+											[holding.id]: Math.min(value, holding.units)
+										};
 									}}
 									min="0"
 									max={holding.units}
@@ -506,7 +513,7 @@
 							</Table.Cell>
 							<Table.Cell class="text-right">
 								{#if mockResult}
-									<span class="{mockResult.totalGain >= 0 ? 'text-green-600' : 'text-red-600'}">
+									<span class={mockResult.totalGain >= 0 ? 'text-green-600' : 'text-red-600'}>
 										{formatCurrency(mockResult.totalGain)}
 									</span>
 								{:else}
@@ -525,14 +532,19 @@
 									<Button
 										variant="outline"
 										size="sm"
-										onclick={() => (unitsToSellByHolding = { ...unitsToSellByHolding, [holding.id]: holding.units })}
+										onclick={() =>
+											(unitsToSellByHolding = {
+												...unitsToSellByHolding,
+												[holding.id]: holding.units
+											})}
 									>
 										All
 									</Button>
 									<Button
 										variant="ghost"
 										size="sm"
-										onclick={() => (unitsToSellByHolding = { ...unitsToSellByHolding, [holding.id]: 0 })}
+										onclick={() =>
+											(unitsToSellByHolding = { ...unitsToSellByHolding, [holding.id]: 0 })}
 									>
 										Clear
 									</Button>
@@ -559,11 +571,17 @@
 					</div>
 					<div>
 						<p class="text-sm text-muted-foreground">Total Gain</p>
-						<p class="text-2xl font-bold {combinedMockSale.totalGain >= 0 ? 'text-green-600' : 'text-red-600'}">
+						<p
+							class="text-2xl font-bold {combinedMockSale.totalGain >= 0
+								? 'text-green-600'
+								: 'text-red-600'}"
+						>
 							{formatCurrency(combinedMockSale.totalGain)}
 						</p>
 						<p class="text-xs text-muted-foreground">
-							Short: {formatCurrency(combinedMockSale.shortTermGain)} | Long: {formatCurrency(combinedMockSale.longTermGain)}
+							Short: {formatCurrency(combinedMockSale.shortTermGain)} | Long: {formatCurrency(
+								combinedMockSale.longTermGain
+							)}
 						</p>
 					</div>
 					<div>
@@ -578,9 +596,13 @@
 				</div>
 
 				{#if combinedMockSale.longTermGain > 0}
-					<div class="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950">
+					<div
+						class="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950"
+					>
 						<p class="text-sm text-green-800 dark:text-green-200">
-							<strong>CGT Discount Applied:</strong> Long-term gains of {formatCurrency(combinedMockSale.longTermGain)}
+							<strong>CGT Discount Applied:</strong> Long-term gains of {formatCurrency(
+								combinedMockSale.longTermGain
+							)}
 							reduced to {formatCurrency(combinedMockSale.taxableLongTerm)} (50% discount).
 						</p>
 					</div>
@@ -588,9 +610,7 @@
 			</div>
 		{/if}
 	{:else}
-		<div class="card py-8 text-center text-muted-foreground">
-			No holdings to simulate sales.
-		</div>
+		<div class="card py-8 text-center text-muted-foreground">No holdings to simulate sales.</div>
 	{/if}
 </div>
 
