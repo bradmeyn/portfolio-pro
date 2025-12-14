@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Button, { buttonVariants } from '$ui/button/button.svelte';
 	import * as Dialog from '$ui/dialog/index.js';
+	import * as NativeSelect from '$ui/native-select/index.js';
 	import Input from '$ui/input/input.svelte';
 	import * as Field from '$ui/field';
 	import { addTransactions } from '$lib/remotes/transaction.remote';
@@ -51,7 +52,7 @@
 			<Dialog.Description>Add one or more transactions for this holding.</Dialog.Description>
 		</Dialog.Header>
 
-		{#each addTransactions.fields.issues() as issue}
+		{#each addTransactions.for(holdingId).fields.issues() as issue}
 			<p class="text-sm text-red-600">{issue.message}</p>
 		{/each}
 
@@ -76,15 +77,14 @@
 					<div class="rounded-lg border bg-card p-3 transition-shadow hover:shadow-sm">
 						<div class="flex items-center gap-3">
 							<Field.Field class="flex-1">
-								<select
+								<NativeSelect.Root
 									{...addTransactions.fields.transactions[i].type.as('text')}
-									class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
 									disabled={!!addTransactions.pending}
 								>
-									<option value="">Type</option>
-									<option value="buy">Buy</option>
-									<option value="sell">Sell</option>
-								</select>
+									<NativeSelect.Option value="">Type</NativeSelect.Option>
+									<NativeSelect.Option value="buy">Buy</NativeSelect.Option>
+									<NativeSelect.Option value="sell">Sell</NativeSelect.Option>
+								</NativeSelect.Root>
 								<Field.Error />
 							</Field.Field>
 
@@ -104,6 +104,18 @@
 								<Input
 									{...addTransactions.fields.transactions[i].pricePerUnit.as('number')}
 									placeholder="Price"
+									min="0"
+									step="0.01"
+									disabled={!!addTransactions.pending}
+									class="text-sm"
+								/>
+								<Field.Error />
+							</Field.Field>
+
+							<Field.Field class="flex-1">
+								<Input
+									{...addTransactions.fields.transactions[i].brokerage.as('number')}
+									placeholder="Brokerage"
 									min="0"
 									step="0.01"
 									disabled={!!addTransactions.pending}

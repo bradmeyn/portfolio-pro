@@ -13,7 +13,9 @@
 <div class="flex min-h-screen flex-col">
 	<Header />
 	<div class="flex-1 bg-gray-50 py-8">
-		{@render children?.()}
+		<div class="container mx-auto max-w-6xl">
+			{@render children?.()}
+		</div>
 	</div>
 	<footer></footer>
 </div>

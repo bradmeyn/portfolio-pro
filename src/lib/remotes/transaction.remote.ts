@@ -57,6 +57,7 @@ export const addTransactions = form(
 			z.object({
 				quantity: z.number().min(1, 'Quantity must be at least 1'),
 				pricePerUnit: z.number().min(0, 'Price per unit must be positive'),
+				brokerage: z.number().min(0, 'Brokerage must be positive').default(0),
 				transactionDate: z.string(),
 				type: z.enum(['buy', 'sell'], { message: 'Type must be buy or sell' })
 			})
@@ -82,6 +83,7 @@ export const addTransactions = form(
 			holdingId,
 			quantity: t.quantity,
 			pricePerUnit: Math.round(t.pricePerUnit * 100),
+			brokerage: Math.round((t.brokerage || 0) * 100),
 			transactionDate: new Date(t.transactionDate),
 			type: t.type
 		}));
@@ -103,10 +105,11 @@ export const addTransaction = form(
 		holdingId: z.string(),
 		quantity: z.number().min(1, 'Quantity must be at least 1'),
 		pricePerUnit: z.number().min(0, 'Price per unit must be positive'),
+		brokerage: z.number().min(0, 'Brokerage must be positive').default(0),
 		transactionDate: z.string(),
 		type: z.enum(['buy', 'sell'], { message: 'Type must be buy or sell' })
 	}),
-	async ({ holdingId, quantity, pricePerUnit, transactionDate, type }) => {
+	async ({ holdingId, quantity, pricePerUnit, brokerage, transactionDate, type }) => {
 		const user = await getCurrentUser();
 		if (!user) error(401, 'Unauthorized');
 
@@ -123,6 +126,7 @@ export const addTransaction = form(
 
 		// Convert price to cents (integer)
 		const priceInCents = Math.round(pricePerUnit * 100);
+		const brokerageInCents = Math.round((brokerage || 0) * 100);
 
 		const [newTransaction] = await db
 			.insert(transactionTable)
@@ -130,6 +134,7 @@ export const addTransaction = form(
 				holdingId,
 				quantity,
 				pricePerUnit: priceInCents,
+				brokerage: brokerageInCents,
 				transactionDate: new Date(transactionDate),
 				type
 			})
@@ -147,10 +152,11 @@ export const editTransaction = form(
 		id: z.string(),
 		quantity: z.number().min(1, 'Quantity must be at least 1'),
 		pricePerUnit: z.number().min(0, 'Price per unit must be positive'),
+		brokerage: z.number().min(0, 'Brokerage must be positive').default(0),
 		transactionDate: z.string(),
 		type: z.enum(['buy', 'sell'], { message: 'Type must be buy or sell' })
 	}),
-	async ({ id, quantity, pricePerUnit, transactionDate, type }) => {
+	async ({ id, quantity, pricePerUnit, brokerage, transactionDate, type }) => {
 		const user = await getCurrentUser();
 		if (!user) error(401, 'Unauthorized');
 
@@ -170,12 +176,14 @@ export const editTransaction = form(
 
 		// Convert price to cents (integer)
 		const priceInCents = Math.round(pricePerUnit * 100);
+		const brokerageInCents = Math.round((brokerage || 0) * 100);
 
 		const [updatedTransaction] = await db
 			.update(transactionTable)
 			.set({
 				quantity,
 				pricePerUnit: priceInCents,
+				brokerage: brokerageInCents,
 				transactionDate: new Date(transactionDate),
 				type
 			})

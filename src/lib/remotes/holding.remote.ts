@@ -6,39 +6,47 @@ import { holdingTable, portfolioTable } from '$db/schemas/portfolio';
 import { eq } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import type { InferSelectModel } from 'drizzle-orm';
-import type { transactionTable, investmentTable } from '$db/schemas/portfolio';
+import type { transactionTable, investmentTable, distributionTable } from '$db/schemas/portfolio';
+import { getStockPrice } from '$lib/server/prices';
 
 type Transaction = InferSelectModel<typeof transactionTable>;
 type Investment = InferSelectModel<typeof investmentTable>;
+type Distribution = InferSelectModel<typeof distributionTable>;
 type Holding = InferSelectModel<typeof holdingTable>;
 
 interface HoldingWithMetrics extends Holding {
 	units: number;
 	averagePrice: number;
+	costBase: number;
+	currentPrice: number;
+	currentValue: number;
+	unrealisedGain: number;
+	unrealisedGainPercent: number;
 	name: string;
 	code: string;
 	investment: Investment;
 	transactions: Transaction[];
+	distributions: Distribution[];
 }
 
-// Helper function to calculate units and average price from transactions
+// Helper function to calculate units, average price, and cost base from transactions
 function calculateHoldingMetrics(transactions: Transaction[]) {
 	let totalUnits = 0;
 	let totalCost = 0;
 
 	for (const transaction of transactions) {
-		if (transaction.type === 'buy') {
+		if (transaction.type === 'buy' || transaction.type === 'reinvestment') {
 			totalUnits += transaction.quantity;
 			totalCost += transaction.quantity * transaction.pricePerUnit;
 		} else if (transaction.type === 'sell') {
 			totalUnits -= transaction.quantity;
-			// Don't adjust totalCost for sells, we keep the original cost basis
 		}
 	}
 
 	const averagePrice = totalUnits > 0 ? Math.round(totalCost / totalUnits) : 0;
+	const costBase = totalUnits > 0 ? totalUnits * averagePrice : 0;
 
-	return { units: totalUnits, averagePrice };
+	return { units: totalUnits, averagePrice, costBase };
 }
 
 export const getHoldings = query(z.string(), async (portfolioId: string) => {
@@ -83,19 +91,31 @@ export const getHolding = query(z.string(), async (id: string) => {
 		with: {
 			portfolio: true,
 			investment: true,
-			transactions: true
+			transactions: true,
+			distributions: true
 		}
 	});
 
 	if (!holding) error(404, 'Holding not found');
 	if (holding.portfolio.userId !== user.id) error(403, 'Forbidden');
 
-	const { units, averagePrice } = calculateHoldingMetrics(holding.transactions);
+	const { units, averagePrice, costBase } = calculateHoldingMetrics(holding.transactions);
+
+	// Fetch current price
+	const currentPrice = (await getStockPrice(holding.investment.code)) ?? averagePrice;
+	const currentValue = units * currentPrice;
+	const unrealisedGain = currentValue - costBase;
+	const unrealisedGainPercent = costBase > 0 ? (unrealisedGain / costBase) * 100 : 0;
 
 	return {
 		...holding,
 		units,
 		averagePrice,
+		costBase,
+		currentPrice,
+		currentValue,
+		unrealisedGain,
+		unrealisedGainPercent,
 		name: holding.investment.name,
 		code: holding.investment.code
 	} as HoldingWithMetrics;

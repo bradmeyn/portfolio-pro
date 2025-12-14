@@ -22,6 +22,7 @@
 			type: string;
 			quantity: number;
 			pricePerUnit: number;
+			brokerage?: number;
 			transactionDate: Date | string;
 		};
 		open?: boolean;
@@ -112,6 +113,18 @@
 					<Field.Error />
 				</Field.Field>
 			</div>
+
+			<Field.Field>
+				<Field.Label for="brokerage">Brokerage</Field.Label>
+				<Input
+					id="brokerage"
+					{...editTransaction.fields.brokerage.as('number')}
+					value={transaction.brokerage || 0}
+					min="0"
+					step="0.01"
+				/>
+				<Field.Error />
+			</Field.Field>
 
 			<Field.Field>
 				<Field.Label for="transactionDate">Transaction Date</Field.Label>

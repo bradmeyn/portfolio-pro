@@ -41,6 +41,7 @@
 	</Table.Cell>
 	<Table.Cell class="text-right">{transaction.quantity}</Table.Cell>
 	<Table.Cell class="text-right">{formatCurrency(transaction.pricePerUnit)}</Table.Cell>
+	<Table.Cell class="text-right">{formatCurrency(transaction.brokerage || 0)}</Table.Cell>
 	<Table.Cell class="text-right">
 		{formatCurrency(transaction.quantity * transaction.pricePerUnit)}
 	</Table.Cell>

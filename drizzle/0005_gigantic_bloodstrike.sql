@@ -1,0 +1,1 @@
+ALTER TABLE "transaction" ADD COLUMN "brokerage" integer DEFAULT 0 NOT NULL;

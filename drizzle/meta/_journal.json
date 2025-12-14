@@ -22,6 +22,27 @@
       "when": 1765015234173,
       "tag": "0002_huge_iron_lad",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1765503350974,
+      "tag": "0003_abnormal_sumo",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1765606610576,
+      "tag": "0004_marvelous_puppet_master",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1765689659416,
+      "tag": "0005_gigantic_bloodstrike",
+      "breakpoints": true
     }
   ]
 }

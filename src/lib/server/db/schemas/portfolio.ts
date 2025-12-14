@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, integer } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, integer, boolean } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { user } from './auth';
 
@@ -39,10 +39,13 @@ export const transactionTable = pgTable('transaction', {
 		.references(() => holdingTable.id, { onDelete: 'cascade' }),
 	quantity: integer('quantity').notNull(),
 	pricePerUnit: integer('price_per_unit').notNull(),
+	brokerage: integer('brokerage').notNull().default(0), // in cents
 	transactionDate: timestamp('transaction_date').notNull(),
-	type: text('type').notNull(), // e.g., 'buy' or 'sell'
+	type: text('type').notNull(), // 'buy', 'sell', or 'reinvestment'
 	...timesStamps
 });
+
+export type Transaction = typeof transactionTable.$inferInsert;
 
 export const investmentTable = pgTable('investment', {
 	id: uuid('id').defaultRandom().primaryKey(),
@@ -50,6 +53,20 @@ export const investmentTable = pgTable('investment', {
 	code: text('code').notNull(),
 	managementFee: integer('management_fee').notNull().default(0), // in basis points
 	type: text('type').notNull(), // e.g., 'stock', 'bond', etc.
+	...timesStamps
+});
+
+export const distributionTable = pgTable('distribution', {
+	id: uuid('id').defaultRandom().primaryKey(),
+	holdingId: uuid('holding_id')
+		.notNull()
+		.references(() => holdingTable.id, { onDelete: 'cascade' }),
+	datePaid: timestamp('date_paid').notNull(),
+	// All amounts stored in cents
+	grossPayment: integer('gross_payment').notNull().default(0),
+	taxWithheld: integer('tax_withheld').notNull().default(0),
+	// Reinvestment details
+	reinvested: boolean('reinvested').notNull().default(false),
 	...timesStamps
 });
 
@@ -66,12 +83,20 @@ export const holdingRelations = relations(holdingTable, ({ many, one }) => ({
 		fields: [holdingTable.investmentId],
 		references: [investmentTable.id]
 	}),
-	transactions: many(transactionTable)
+	transactions: many(transactionTable),
+	distributions: many(distributionTable)
 }));
 
 export const transactionRelations = relations(transactionTable, ({ one }) => ({
 	holding: one(holdingTable, {
 		fields: [transactionTable.holdingId],
+		references: [holdingTable.id]
+	})
+}));
+
+export const distributionRelations = relations(distributionTable, ({ one }) => ({
+	holding: one(holdingTable, {
+		fields: [distributionTable.holdingId],
 		references: [holdingTable.id]
 	})
 }));
